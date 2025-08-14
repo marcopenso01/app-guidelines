@@ -54,11 +54,10 @@ PDF_DIRECTORY = "linee_guida"
 # IMPORTANTE: I nomi dei file devono essere ESATTAMENTE gli stessi
 # di quelli presenti nella cartella 'linee_guida'.
 TOPICS = {
-    "Cardiomiopatie": "cardiomiopatie.pdf",
-    "Ipertensione Arteriosa": "ipertensione_arteriosa.pdf",
-    "Fibrillazione Atriale": "fibrillazione_atriale.pdf",
-    "Diabete Mellito Tipo 2": "diabete_mellito_tipo_2.pdf", # Esempio aggiuntivo
-    "Scompenso Cardiaco": "scompenso_cardiaco.pdf"          # Esempio aggiuntivo
+    TOPICS = {
+    "Cardiomyopathies": "Cardiomyopathies.pdf",
+    "Atrial Fibrillation": "Atrial_fibrillation.pdf",
+    "Arterial and Aortic Diseases": "Arterial_and_aortic_diseases.pdf"          # Esempio aggiuntivo
     # ---> Aggiungi qui altre righe per ogni nuova linea guida <---
 }
 
