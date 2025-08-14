@@ -54,7 +54,6 @@ PDF_DIRECTORY = "linee_guida"
 # IMPORTANTE: I nomi dei file devono essere ESATTAMENTE gli stessi
 # di quelli presenti nella cartella 'linee_guida'.
 TOPICS = {
-    TOPICS = {
     "Cardiomyopathies": "Cardiomyopathies.pdf",
     "Atrial Fibrillation": "Atrial_fibrillation.pdf",
     "Arterial and Aortic Diseases": "Arterial_and_aortic_diseases.pdf"          # Esempio aggiuntivo
