@@ -133,6 +133,8 @@ st.sidebar.write("App per consultazione rapida delle linee guida.")
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
 
+st.markdown('<div id="botpress-webchat-container" style="min-height: 500px;"></div>', unsafe_allow_html=True)
+
 bot_id = st.secrets.get("botpress", {}).get("botId") or os.environ.get("BOTPRESS_BOT_ID")
 client_id = st.secrets.get("botpress", {}).get("clientId") or os.environ.get("BOTPRESS_CLIENT_ID")
 
@@ -144,13 +146,12 @@ if bot_id and client_id:
             window.botpress.init({{
               botId: "{bot_id}",
               clientId: "{client_id}",
-              // Niente selector = bolla flottante in basso a destra
+              selector: "#botpress-webchat-container",
               "configuration": {{
                 "version": "v1",
                 "botName": "Assistente Clinico",
                 "botDescription": "Posso aiutarti a trovare informazioni nelle linee guida.",
-                "composerPlaceholder": "Scrivi un messaggio...",
-                "useSessionStorage": true
+                "composerPlaceholder": "Scrivi un messaggio..."
               }}
             }});
           }});
