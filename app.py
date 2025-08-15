@@ -129,50 +129,31 @@ st.sidebar.markdown("---")
 st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 # ==============================================================================
-# 6) CHATBOT (Botpress) — modalità diagnostica
+# 6) CHATBOT (Botpress) — container + script nello stesso iframe
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
+import os, streamlit as st
 
 bot_id = st.secrets.get("botpress", {}).get("botId") or os.environ.get("BOTPRESS_BOT_ID")
 client_id = st.secrets.get("botpress", {}).get("clientId") or os.environ.get("BOTPRESS_CLIENT_ID")
 
-# Mostro a schermo se i secrets sono stati letti (senza esporli)
 st.caption(f"🔎 BotID presente: {'✔️' if bool(bot_id) else '❌'}  |  ClientID presente: {'✔️' if bool(client_id) else '❌'}")
 
-if not bot_id or not client_id:
-    st.error("Bot non configurato: aggiungi `botId` e `clientId` nei secrets.")
-else:
-    # Prova 1: EMBEDDED dentro un div visibile
-    st.markdown(
-        """
-        <div id="bp-status" style="padding:8px;border-radius:8px;background:#111;color:#fff;margin-bottom:8px;">
-          Avvio Botpress…
-        </div>
-        <div id="botpress-webchat-container" style="width:100%;height:600px;border:1px solid #333;border-radius:10px;"></div>
-        """,
-        unsafe_allow_html=True
-    )
-
+if bot_id and client_id:
     st_html(f"""
+      <div id="bp-container" style="width:100%; height:600px; border:1px solid #333; border-radius:10px;"></div>
       <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
       <script>
-        const statusEl = document.getElementById('bp-status');
-        function setStatus(msg) {{
-          if (statusEl) statusEl.innerText = msg;
-          console.log("[BP]", msg);
-        }}
-
         window.addEventListener('load', function() {{
-          setStatus("Pagina caricata, inizializzo…");
           try {{
             if (!window.botpress) {{
-              setStatus("❌ window.botpress non presente (inject.js bloccato?)");
+              console.error("Botpress inject non caricato");
               return;
             }}
             window.botpress.init({{
               botId: "{bot_id}",
               clientId: "{client_id}",
-              selector: "#botpress-webchat-container",
+              selector: "#bp-container",
               configuration: {{
                 version: "v1",
                 botName: "Assistente Clinico",
@@ -181,32 +162,13 @@ else:
                 useSessionStorage: true
               }}
             }});
-            setStatus("✔️ Embedded init inviato. Se non vedi nulla tra poco, provo fallback flottante…");
-            // Fallback alla bolla flottante dopo 2.5s se il container è ancora vuoto
-            setTimeout(function() {{
-              const host = document.querySelector("#botpress-webchat-container iframe");
-              if (!host) {{
-                setStatus("↪️ Fallback: inizializzo bolla flottante…");
-                window.botpress.init({{
-                  botId: "{bot_id}",
-                  clientId: "{client_id}",
-                  configuration: {{
-                    version: "v1",
-                    botName: "Assistente Clinico",
-                    botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
-                    composerPlaceholder: "Scrivi un messaggio…",
-                    useSessionStorage: true
-                  }}
-                }});
-                setStatus("✔️ Fallback inviato. Se ancora non appare, controlla Console (F12) ed estensioni.");
-              }} else {{
-                setStatus("✔️ Embedded avviato (iframe rilevato).");
-              }}
-            }}, 2500);
+            console.log("Botpress init OK (embedded).");
           }} catch (e) {{
             console.error("Botpress init error:", e);
-            setStatus("❌ Errore in init: vedi console (F12).");
           }}
         }});
       </script>
-    """, height=0, width=0)
+    """, height=620)
+else:
+    st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
+
