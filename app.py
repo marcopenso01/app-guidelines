@@ -95,7 +95,7 @@ if "topic" in qp and qp["topic"] in TOPICS:
 # ==============================================================================
 # 5) UI PRINCIPALE
 # ==============================================================================
-st.title("Archivio Intelligente di Linee Guida con Assistente AI")
+st.title("Archivio Intelligente di Linee Guida")
 st.markdown("---")
 
 with st.sidebar:
@@ -129,7 +129,7 @@ st.sidebar.markdown("---")
 st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 # ==============================================================================
-# 6) CHATBOT (Botpress) — versione stabile con bolla flottante
+# 6) CHATBOT (Botpress) — floating, forza apertura + z-index alto
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
 import os, streamlit as st
@@ -143,13 +143,11 @@ if bot_id and client_id:
     st_html(f"""
       <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
       <script>
-        window.addEventListener('load', function() {{
-          try {{
-            if (!window.botpress) return console.error("Botpress inject non caricato");
+        function initBotpress() {{
+          if (!window.botpress) return setTimeout(initBotpress, 150);
 
-            // Apri automaticamente solo la prima volta nella sessione
-            const first = !sessionStorage.getItem("bp_opened_once");
-            window.botpress.init({{
+          window.botpress
+            .init({{
               botId: "{bot_id}",
               clientId: "{client_id}",
               configuration: {{
@@ -158,22 +156,26 @@ if bot_id and client_id:
                 botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
                 composerPlaceholder: "Scrivi un messaggio…",
                 useSessionStorage: true,
-                // opzionale: alza lo z-index per stare sopra alla UI
-                style: {{
-                  zIndex: 9999
-                }}
+                style: {{ zIndex: 2147483647 }} // sopra ogni overlay
               }}
-            }}).then(() => {{
-              if (first && window.botpress && window.botpress.open) {{
-                window.botpress.open();
-                sessionStorage.setItem("bp_opened_once", "1");
-              }}
-            }});
-          }} catch (e) {{
-            console.error("Botpress init error:", e);
-          }}
-        }});
+            }})
+            .then(() => {{
+              // Forza apertura subito dopo il mount (debug)
+              setTimeout(() => {{
+                try {{ window.botpress.open(); }} catch (e) {{ console.warn("open() failed once", e); }}
+              }}, 300);
+
+              // Se per qualche motivo non si è aperto, riprova
+              setTimeout(() => {{
+                try {{ window.botpress.open(); }} catch (e) {{ /* ignore */ }}
+              }}, 1500);
+            }})
+            .catch(e => console.error("Botpress init error:", e));
+        }}
+
+        window.addEventListener('load', initBotpress);
       </script>
     """, height=0, width=0)
 else:
     st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
+
