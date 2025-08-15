@@ -11,14 +11,13 @@ from streamlit.components.v1 import html
 # ==============================================================================
 st.set_page_config(
     page_title="Archivio Linee Guida AI",
-    page_icon="🤖", # Icona aggiornata
+    page_icon="🤖",
     layout="wide"
 )
 
 # ==============================================================================
 # 3. CODICE DEL CHATBOT
 # ==============================================================================
-
 BOTPRESS_SCRIPT = """
 <!-- Includiamo la libreria principale di Botpress -->
 <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
@@ -50,11 +49,10 @@ BOTPRESS_SCRIPT = """
 </script>
 """
 
-# Chiamiamo la funzione per caricare lo script del chatbot nella pagina.
 html(BOTPRESS_SCRIPT, height=0, width=0)
 
 # ==============================================================================
-# 4. FUNZIONI DI SUPPORTO (rimane invariata)
+# 4. FUNZIONI DI SUPPORTO
 # ==============================================================================
 def show_pdf(file_path):
     try:
@@ -68,7 +66,7 @@ def show_pdf(file_path):
         st.error(f"Si è verificato un errore imprevisto: {e}")
 
 # ==============================================================================
-# 5. CONFIGURAZIONE DEI DATI (la tua configurazione corretta)
+# 5. CONFIGURAZIONE DEI DATI
 # ==============================================================================
 PDF_DIRECTORY = "linee_guida"
 TOPICS = {
@@ -78,7 +76,7 @@ TOPICS = {
 }
 
 # ==============================================================================
-# 6. UI E LOGICA PRINCIPALE (con testi aggiornati)
+# 6. UI E LOGICA PRINCIPALE
 # ==============================================================================
 st.title("⚕️ Archivio Intelligente di Linee Guida con Assistente AI")
 st.markdown("---")
@@ -91,7 +89,8 @@ selected_topic = st.sidebar.selectbox("Linee Guida Disponibili:", topic_options)
 
 if selected_topic == "--- Seleziona un argomento ---":
     st.info("**Benvenuto!** Usa il menu a sinistra per leggere un documento oppure clicca sull'icona della chat per fare una domanda specifica.")
-    st.markdown("### L'assistente AI è addestrato per rispondere a domande basate sul contenuto dei documenti disponibili.")
+    # st.markdown("### L'assistente AI è addestrato per rispondere a domande basate sul contenuto dei documenti disponibili.") # <-- RIMOSSA QUESTA RIGA
+
 else:
     st.header(f"📄 Linee Guida: {selected_topic}")
     pdf_filename = TOPICS.get(selected_topic)
