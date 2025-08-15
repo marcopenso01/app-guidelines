@@ -130,34 +130,31 @@ st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 # ==============================================================================
 # 6) CHATBOT (Botpress) — credenziali dai Secrets
-#    Aggiungi in .streamlit/secrets.toml:
-#    [botpress]
-#    botId = "..."
-#    clientId = "..."
 # ==============================================================================
+from streamlit.components.v1 import html as st_html
+
 bot_id = st.secrets.get("botpress", {}).get("botId") or os.environ.get("BOTPRESS_BOT_ID")
 client_id = st.secrets.get("botpress", {}).get("clientId") or os.environ.get("BOTPRESS_CLIENT_ID")
 
 if bot_id and client_id:
-    st.markdown('<div id="botpress-webchat-container"></div>', unsafe_allow_html=True)
-    BOTPRESS_SCRIPT = f"""
-    <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
-    <script>
-      window.addEventListener('load', function() {{
-        window.botpress.init({{
-          botId: "{bot_id}",
-          clientId: "{client_id}",
-          selector: "#botpress-webchat-container",
-          configuration: {{
-            version: "v1",
-            botName: "Assistente Clinico",
-            botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
-            color: "#3276EA"
-          }}
-        }});
-      }});
-    </script>
-    """
-    st.markdown(BOTPRESS_SCRIPT, unsafe_allow_html=True)
+    st_html(f"""
+        <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
+        <script>
+          window.addEventListener('load', function() {{
+            window.botpress.init({{
+              botId: "{bot_id}",
+              clientId: "{client_id}",
+              // Niente selector = bolla flottante in basso a destra
+              "configuration": {{
+                "version": "v1",
+                "botName": "Assistente Clinico",
+                "botDescription": "Posso aiutarti a trovare informazioni nelle linee guida.",
+                "composerPlaceholder": "Scrivi un messaggio...",
+                "useSessionStorage": true
+              }}
+            }});
+          }});
+        </script>
+    """, height=0, width=0)
 else:
     st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
