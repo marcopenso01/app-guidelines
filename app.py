@@ -129,33 +129,73 @@ st.sidebar.markdown("---")
 st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 # ==============================================================================
-# 6) CHATBOT (Botpress) — credenziali dai Secrets
+# 6) CHATBOT (Botpress) — credenziali dai Secrets + fallback flottante
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
 
-st.markdown('<div id="botpress-webchat-container" style="min-height: 500px;"></div>', unsafe_allow_html=True)
-
+# 6.a) Leggo i secrets / env
 bot_id = st.secrets.get("botpress", {}).get("botId") or os.environ.get("BOTPRESS_BOT_ID")
 client_id = st.secrets.get("botpress", {}).get("clientId") or os.environ.get("BOTPRESS_CLIENT_ID")
 
-if bot_id and client_id:
-    st_html(f"""
-        <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
-        <script>
-          window.addEventListener('load', function() {{
-            window.botpress.init({{
-              botId: "{bot_id}",
-              clientId: "{client_id}",
-              selector: "#botpress-webchat-container",
-              "configuration": {{
-                "version": "v1",
-                "botName": "Assistente Clinico",
-                "botDescription": "Posso aiutarti a trovare informazioni nelle linee guida.",
-                "composerPlaceholder": "Scrivi un messaggio..."
-              }}
-            }});
-          }});
-        </script>
-    """, height=0, width=0)
-else:
+# 6.b) Debug minimal (senza esporre i valori)
+if not bot_id or not client_id:
     st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
+else:
+    # Switch rapido: True = ancorato nel div, False = bolla flottante
+    EMBEDDED_MODE = True
+
+    if EMBEDDED_MODE:
+        # Contenitore visibile per l’embed (dimensioni esplicite)
+        st.markdown(
+            '<div id="botpress-webchat-container" style="width:100%; height: 600px;"></div>',
+            unsafe_allow_html=True
+        )
+        st_html(f"""
+            <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
+            <script>
+              window.addEventListener('load', function() {{
+                try {{
+                  window.botpress.init({{
+                    botId: "{bot_id}",
+                    clientId: "{client_id}",
+                    selector: "#botpress-webchat-container",
+                    configuration: {{
+                      version: "v1",
+                      botName: "Assistente Clinico",
+                      botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
+                      composerPlaceholder: "Scrivi un messaggio...",
+                      useSessionStorage: true
+                    }}
+                  }});
+                  console.log("Botpress init OK (embedded).");
+                }} catch (e) {{
+                  console.error("Botpress init error (embedded):", e);
+                }}
+              }});
+            </script>
+        """, height=0, width=0)
+    else:
+        # Fallback: bolla flottante in basso a destra (niente selector)
+        st_html(f"""
+            <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
+            <script>
+              window.addEventListener('load', function() {{
+                try {{
+                  window.botpress.init({{
+                    botId: "{bot_id}",
+                    clientId: "{client_id}",
+                    configuration: {{
+                      version: "v1",
+                      botName: "Assistente Clinico",
+                      botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
+                      composerPlaceholder: "Scrivi un messaggio...",
+                      useSessionStorage: true
+                    }}
+                  }});
+                  console.log("Botpress init OK (floating).");
+                }} catch (e) {{
+                  console.error("Botpress init error (floating):", e);
+                }}
+              }});
+            </script>
+        """, height=0, width=0)
