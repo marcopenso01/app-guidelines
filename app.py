@@ -130,7 +130,7 @@ st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 
 # ==============================================================================
-# 6) CHATBOT (Botpress) — bolla flottante, finestra ampia + z-index alto
+# 6) CHATBOT (Botpress) — versione embedded a tutta altezza (niente bolla)
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
 import os, streamlit as st
@@ -142,42 +142,31 @@ st.caption(f"🤖 BotID presente: {'✔️' if bool(bot_id) else '❌'}  |  Clie
 
 if bot_id and client_id:
     st_html(f"""
+      <div id="bp-container" style="width:100%; height:80vh; border:1px solid #333; border-radius:10px;"></div>
       <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
       <script>
-        function initBotpress() {{
-          if (!window.botpress) return setTimeout(initBotpress, 150);
+        window.addEventListener('load', function() {{
+          try {{
+            if (!window.botpress) return console.error("Botpress inject non caricato");
 
-          window.botpress.init({{
-            botId: "{bot_id}",
-            clientId: "{client_id}",
-            configuration: {{
-              version: "v1",
-              botName: "Assistente Clinico",
-              botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
-              composerPlaceholder: "Scrivi un messaggio…",
-              useSessionStorage: true,
-              // ---- Stile della finestra chat (flottante) ----
-              style: {{
-                zIndex: 2147483647,   // sopra tutto
-                width: "420px",       // larghezza finestra
-                height: "80vh",       // altezza finestra (80% viewport)
-                right: "24px",        // distanza dal bordo destro
-                bottom: "24px",       // distanza dal bordo basso
-                borderRadius: "14px"  // angoli più morbidi
+            window.botpress.init({{
+              botId: "{bot_id}",
+              clientId: "{client_id}",
+              selector: "#bp-container",
+              configuration: {{
+                version: "v1",
+                botName: "Assistente Clinico",
+                botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
+                composerPlaceholder: "Scrivi un messaggio…",
+                useSessionStorage: true
               }}
-            }}
-          }}).then(() => {{
-            // Apri automaticamente la prima volta nella sessione
-            const first = !sessionStorage.getItem("bp_opened_once");
-            if (first && window.botpress && window.botpress.open) {{
-              window.botpress.open();
-              sessionStorage.setItem("bp_opened_once", "1");
-            }}
-          }}).catch(e => console.error("Botpress init error:", e));
-        }}
-
-        window.addEventListener('load', initBotpress);
+            }});
+          }} catch (e) {{
+            console.error("Botpress init error:", e);
+          }}
+        }});
       </script>
-    """, height=0, width=0)
+    """, height=720)   # <-- altezza dell'iframe esterno: >= dell'altezza del container
 else:
     st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
+
