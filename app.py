@@ -1,12 +1,14 @@
 # ==============================================================================
-# 1. IMPORT DELLE LIBRERIE NECESSARIE
+# 1) IMPORT
 # ==============================================================================
-import streamlit as st
-import base64
 import os
+import base64
+from pathlib import Path
+import streamlit as st
 
 # ==============================================================================
-# 2. IMPOSTAZIONI E STILI
+# 2) CONFIG & STILI
+#  - set_page_config deve essere la PRIMA chiamata Streamlit
 # ==============================================================================
 st.set_page_config(
     page_title="Archivio Linee Guida AI",
@@ -16,84 +18,146 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-        h1 {
-            text-align: center;
-            padding-top: 0rem;
-        }
+      h1 { text-align:center; padding-top:0rem; }
+      .sidebar .sidebar-content { padding-top: 1rem !important; }
     </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. UI E LOGICA PRINCIPALE (La mettiamo prima dello script)
+# 3) COSTANTI & UTILITIES
+# ==============================================================================
+# Directory dei PDF: riferita al file corrente (robusto per Streamlit Cloud)
+ROOT = Path(__file__).resolve().parent
+PDF_DIRECTORY = ROOT / "linee_guida"
+
+# Mappa "titolo" -> "filename". Puoi mantenerla per titoli curati
+DEFAULT_TOPICS = {
+    "Cardiomyopathies": "Cardiomyopathies.pdf",
+    "Atrial Fibrillation": "Atrial_fibrillation.pdf",
+    "Arterial and Aortic Diseases": "Arterial_and_aortic_diseases.pdf",
+}
+
+def discover_pdfs(directory: Path) -> dict:
+    """Se vuoi generare i topic automaticamente dai PDF presenti in cartella."""
+    topics = {}
+    if directory.exists():
+        for p in sorted(directory.glob("*.pdf")):
+            nice = p.stem.replace("_", " ").title()
+            topics[nice] = p.name
+    return topics
+
+def ensure_topics(map_or_discover=True) -> dict:
+    """
+    1) Usa la mappa curata DEFAULT_TOPICS se i file esistono.
+    2) Se mancano file, rimuovili dalla mappa.
+    3) Se directory vuota o vuoi full-auto, prova discovery.
+    """
+    topics = {}
+    for title, fname in DEFAULT_TOPICS.items():
+        path = PDF_DIRECTORY / fname
+        if path.exists():
+            topics[title] = fname
+
+    if not topics and map_or_discover:
+        # fallback a discovery automatica
+        topics = discover_pdfs(PDF_DIRECTORY)
+
+    return topics
+
+def render_pdf_inline(pdf_path: Path, height: int = 800):
+    """Mostra PDF in iframe base64; aggiungi anche un pulsante download."""
+    with open(pdf_path, "rb") as f:
+        data = f.read()
+    b64 = base64.b64encode(data).decode("utf-8")
+    iframe = f'<iframe src="data:application/pdf;base64,{b64}" width="100%" height="{height}" type="application/pdf"></iframe>'
+    st.markdown(iframe, unsafe_allow_html=True)
+    st.download_button(
+        "⬇️ Scarica PDF",
+        data=data,
+        file_name=pdf_path.name,
+        mime="application/pdf",
+        use_container_width=True,
+    )
+
+# ==============================================================================
+# 4) STATO & PARAMETRI
+# ==============================================================================
+if "topics" not in st.session_state:
+    st.session_state.topics = ensure_topics()
+
+TOPICS = st.session_state.topics  # dict: titolo -> filename
+
+# Deep-link: ?topic=Titolo esatto
+qp = st.query_params
+if "topic" in qp and qp["topic"] in TOPICS:
+    st.session_state["selected_topic"] = qp["topic"]
+
+# ==============================================================================
+# 5) UI PRINCIPALE
 # ==============================================================================
 st.title("Archivio Intelligente di Linee Guida con Assistente AI")
 st.markdown("---")
 
-st.sidebar.title("📚 Indice Argomenti")
-st.sidebar.markdown("Scegli un documento o usa l'assistente virtuale in basso a destra.")
+with st.sidebar:
+    st.title("📚 Indice Argomenti")
+    st.markdown("Scegli un documento o usa l'assistente virtuale in basso a destra.")
+    options = ["— Seleziona —"] + list(TOPICS.keys())
+    idx_default = 0
+    if "selected_topic" in st.session_state and st.session_state["selected_topic"] in TOPICS:
+        idx_default = options.index(st.session_state["selected_topic"])
+    selected = st.selectbox("Linee Guida Disponibili:", options, index=idx_default, key="sb_select")
 
-topic_options = ["--- Seleziona un argomento ---"] + list(st.session_state.get('topics', {}).keys())
-# Carichiamo i topic nello stato della sessione per evitare ricaricamenti
-if 'topics' not in st.session_state:
-    st.session_state.topics = {
-        "Cardiomyopathies": "Cardiomyopathies.pdf",
-        "Atrial Fibrillation": "Atrial_fibrillation.pdf",
-        "Arterial and Aortic Diseases": "Arterial_and_aortic_diseases.pdf"
-    }
-PDF_DIRECTORY = "linee_guida"
-TOPICS = st.session_state.topics
-
-selected_topic = st.sidebar.selectbox("Linee Guida Disponibili:", ["--- Seleziona un argomento ---"] + list(TOPICS.keys()))
-
-if selected_topic == "--- Seleziona un argomento ---":
-    st.info("**Benvenuto!** Usa il menu a sinistra per leggere un documento oppure clicca sull'icona della chat per fare una domanda specifica.")
+if selected == "— Seleziona —":
+    st.info("**Benvenuto!** Scegli un documento a sinistra oppure clicca sull’icona della chat per fare una domanda.")
 else:
-    st.header(f"📄 Linee Guida: {selected_topic}")
-    pdf_filename = TOPICS.get(selected_topic)
+    st.header(f"📄 Linee Guida: {selected}")
+    st.query_params["topic"] = selected  # aggiorna URL per deep-link
+    pdf_filename = TOPICS.get(selected)
+    pdf_path = PDF_DIRECTORY / pdf_filename
     if pdf_filename:
-        pdf_path = os.path.join(PDF_DIRECTORY, pdf_filename)
-        try:
-            with open(pdf_path, "rb") as f:
-                base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-            pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
-            st.markdown(pdf_display, unsafe_allow_html=True)
-        except FileNotFoundError:
-            st.error(f"Errore: File non trovato a questo percorso: {pdf_path}")
-        except Exception as e:
-            st.error(f"Si è verificato un errore imprevisto: {e}")
+        if pdf_path.exists():
+            try:
+                render_pdf_inline(pdf_path, height=820)
+            except Exception as e:
+                st.error(f"Si è verificato un errore durante il rendering del PDF: {e}")
+        else:
+            st.error(f"File non trovato: `{pdf_path}`")
+    else:
+        st.warning("Documento non disponibile.")
 
 st.sidebar.markdown("---")
-st.sidebar.write("App creata per la consultazione rapida.")
+st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 # ==============================================================================
-# 4. CODICE DEL CHATBOT (Lo mettiamo alla fine)
+# 6) CHATBOT (Botpress) — credenziali dai Secrets
+#    Aggiungi in .streamlit/secrets.toml:
+#    [botpress]
+#    botId = "..."
+#    clientId = "..."
 # ==============================================================================
+bot_id = st.secrets.get("botpress", {}).get("botId") or os.environ.get("BOTPRESS_BOT_ID")
+client_id = st.secrets.get("botpress", {}).get("clientId") or os.environ.get("BOTPRESS_CLIENT_ID")
 
-# Creiamo il punto di ancoraggio invisibile per il chatbot
-st.markdown('<div id="botpress-webchat-container"></div>', unsafe_allow_html=True)
-
-# Definiamo lo script del chatbot CON il selettore corretto
-BOTPRESS_SCRIPT = """
-<script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
-<script>
-    // Attendiamo che la pagina sia completamente caricata prima di inizializzare
-    window.addEventListener('load', function() {
-        window.botpress.init({
-            "botId": "58341229-69e9-461a-9cdc-72b2561974d1",
-            "clientId": "15df004f-3be1-4765-9ce7-219091c75c53",
-            
-            // LA MODIFICA CHIAVE: Diciamo allo script dove agganciarsi
-            "selector": "#botpress-webchat-container",
-
-            "configuration": {
-                "version": "v1",
-                "botName": "Assistente Clinico",
-                "botDescription": "Posso aiutarti a trovare informazioni nelle linee guida.",
-                "color": "#3276EA"
-            }
-        });
-    });
-</script>
-"""
-# Iniettiamo lo script nella pagina
-st.markdown(BOTPRESS_SCRIPT, unsafe_allow_html=True)
+if bot_id and client_id:
+    st.markdown('<div id="botpress-webchat-container"></div>', unsafe_allow_html=True)
+    BOTPRESS_SCRIPT = f"""
+    <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
+    <script>
+      window.addEventListener('load', function() {{
+        window.botpress.init({{
+          botId: "{bot_id}",
+          clientId: "{client_id}",
+          selector: "#botpress-webchat-container",
+          configuration: {{
+            version: "v1",
+            botName: "Assistente Clinico",
+            botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
+            color: "#3276EA"
+          }}
+        }});
+      }});
+    </script>
+    """
+    st.markdown(BOTPRESS_SCRIPT, unsafe_allow_html=True)
+else:
+    st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
