@@ -4,10 +4,10 @@
 import streamlit as st
 import base64
 import os
-from streamlit.components.v1 import html
+# NOTA: NON importiamo più 'html' da streamlit.components
 
 # ==============================================================================
-# 2. IMPOSTAZIONI DELLA PAGINA STREAMLIT
+# 2. IMPOSTAZIONI E STILI
 # ==============================================================================
 st.set_page_config(
     page_title="Archivio Linee Guida AI",
@@ -15,14 +15,23 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- NUOVA SEZIONE PER LO STILE ---
+# Iniezione di CSS per centrare il titolo e rimuovere lo spazio in alto
+st.markdown("""
+    <style>
+        /* Seleziona l'elemento del titolo principale */
+        h1 {
+            text-align: center; /* Centra il testo */
+            padding-top: 0rem; /* Rimuove lo spazio extra sopra */
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # ==============================================================================
 # 3. CODICE DEL CHATBOT
 # ==============================================================================
 BOTPRESS_SCRIPT = """
-<!-- Includiamo la libreria principale di Botpress -->
 <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
-
-<!-- Inizializziamo il bot con la tua configurazione -->
 <script>
   window.botpress.init({
       "botId": "58341229-69e9-461a-9cdc-72b2561974d1",
@@ -31,25 +40,15 @@ BOTPRESS_SCRIPT = """
         "version": "v1",
         "botName": "Assistente Clinico",
         "botDescription": "Posso aiutarti a trovare informazioni nelle linee guida.",
-        "website": {},
-        "email": {},
-        "phone": {},
-        "termsOfService": {},
-        "privacyPolicy": {},
-        "color": "#3276EA",
-        "variant": "solid",
-        "headerVariant": "glass",
-        "themeMode": "light",
-        "fontFamily": "inter",
-        "radius": 4,
-        "feedbackEnabled": true,
-        "footer": "[⚡ by Botpress](https://botpress.com/?from=webchat)"
+        "color": "#3276EA"
       }
   });
 </script>
 """
+# --- METODO DI INIEZIONE CORRETTO ---
+# Usiamo st.markdown per inserire lo script direttamente nel corpo della pagina
+st.markdown(BOTPRESS_SCRIPT, unsafe_allow_html=True)
 
-html(BOTPRESS_SCRIPT, height=0, width=0)
 
 # ==============================================================================
 # 4. FUNZIONI DI SUPPORTO
@@ -78,7 +77,7 @@ TOPICS = {
 # ==============================================================================
 # 6. UI E LOGICA PRINCIPALE
 # ==============================================================================
-st.title("⚕️ Archivio Intelligente di Linee Guida con Assistente AI")
+st.title("Archivio Intelligente di Linee Guida con Assistente AI") # Titolo ora centrato dal CSS
 st.markdown("---")
 
 st.sidebar.title("📚 Indice Argomenti")
@@ -89,8 +88,6 @@ selected_topic = st.sidebar.selectbox("Linee Guida Disponibili:", topic_options)
 
 if selected_topic == "--- Seleziona un argomento ---":
     st.info("**Benvenuto!** Usa il menu a sinistra per leggere un documento oppure clicca sull'icona della chat per fare una domanda specifica.")
-    # st.markdown("### L'assistente AI è addestrato per rispondere a domande basate sul contenuto dei documenti disponibili.") # <-- RIMOSSA QUESTA RIGA
-
 else:
     st.header(f"📄 Linee Guida: {selected_topic}")
     pdf_filename = TOPICS.get(selected_topic)
