@@ -128,8 +128,9 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.write("App per consultazione rapida delle linee guida.")
 
+
 # ==============================================================================
-# 6) CHATBOT (Botpress) — floating, forza apertura + z-index alto
+# 6) CHATBOT (Botpress) — bolla flottante, finestra ampia + z-index alto
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
 import os, streamlit as st
@@ -146,31 +147,33 @@ if bot_id and client_id:
         function initBotpress() {{
           if (!window.botpress) return setTimeout(initBotpress, 150);
 
-          window.botpress
-            .init({{
-              botId: "{bot_id}",
-              clientId: "{client_id}",
-              configuration: {{
-                version: "v1",
-                botName: "Assistente Clinico",
-                botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
-                composerPlaceholder: "Scrivi un messaggio…",
-                useSessionStorage: true,
-                style: {{ zIndex: 2147483647 }} // sopra ogni overlay
+          window.botpress.init({{
+            botId: "{bot_id}",
+            clientId: "{client_id}",
+            configuration: {{
+              version: "v1",
+              botName: "Assistente Clinico",
+              botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
+              composerPlaceholder: "Scrivi un messaggio…",
+              useSessionStorage: true,
+              // ---- Stile della finestra chat (flottante) ----
+              style: {{
+                zIndex: 2147483647,   // sopra tutto
+                width: "420px",       // larghezza finestra
+                height: "80vh",       // altezza finestra (80% viewport)
+                right: "24px",        // distanza dal bordo destro
+                bottom: "24px",       // distanza dal bordo basso
+                borderRadius: "14px"  // angoli più morbidi
               }}
-            }})
-            .then(() => {{
-              // Forza apertura subito dopo il mount (debug)
-              setTimeout(() => {{
-                try {{ window.botpress.open(); }} catch (e) {{ console.warn("open() failed once", e); }}
-              }}, 300);
-
-              // Se per qualche motivo non si è aperto, riprova
-              setTimeout(() => {{
-                try {{ window.botpress.open(); }} catch (e) {{ /* ignore */ }}
-              }}, 1500);
-            }})
-            .catch(e => console.error("Botpress init error:", e));
+            }}
+          }}).then(() => {{
+            // Apri automaticamente la prima volta nella sessione
+            const first = !sessionStorage.getItem("bp_opened_once");
+            if (first && window.botpress && window.botpress.open) {{
+              window.botpress.open();
+              sessionStorage.setItem("bp_opened_once", "1");
+            }}
+          }}).catch(e => console.error("Botpress init error:", e));
         }}
 
         window.addEventListener('load', initBotpress);
@@ -178,4 +181,3 @@ if bot_id and client_id:
     """, height=0, width=0)
 else:
     st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
-
