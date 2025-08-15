@@ -129,7 +129,7 @@ st.sidebar.markdown("---")
 st.sidebar.write("App per consultazione rapida delle linee guida.")
 
 # ==============================================================================
-# 6) CHATBOT (Botpress) — container + script nello stesso iframe
+# 6) CHATBOT (Botpress) — versione stabile con bolla flottante
 # ==============================================================================
 from streamlit.components.v1 import html as st_html
 import os, streamlit as st
@@ -137,38 +137,43 @@ import os, streamlit as st
 bot_id = st.secrets.get("botpress", {}).get("botId") or os.environ.get("BOTPRESS_BOT_ID")
 client_id = st.secrets.get("botpress", {}).get("clientId") or os.environ.get("BOTPRESS_CLIENT_ID")
 
-st.caption(f"🔎 BotID presente: {'✔️' if bool(bot_id) else '❌'}  |  ClientID presente: {'✔️' if bool(client_id) else '❌'}")
+st.caption(f"🤖 BotID presente: {'✔️' if bool(bot_id) else '❌'}  |  ClientID presente: {'✔️' if bool(client_id) else '❌'}")
 
 if bot_id and client_id:
     st_html(f"""
-      <div id="bp-container" style="width:100%; height:600px; border:1px solid #333; border-radius:10px;"></div>
       <script src="https://cdn.botpress.cloud/webchat/v3.2/inject.js"></script>
       <script>
         window.addEventListener('load', function() {{
           try {{
-            if (!window.botpress) {{
-              console.error("Botpress inject non caricato");
-              return;
-            }}
+            if (!window.botpress) return console.error("Botpress inject non caricato");
+
+            // Apri automaticamente solo la prima volta nella sessione
+            const first = !sessionStorage.getItem("bp_opened_once");
             window.botpress.init({{
               botId: "{bot_id}",
               clientId: "{client_id}",
-              selector: "#bp-container",
               configuration: {{
                 version: "v1",
                 botName: "Assistente Clinico",
                 botDescription: "Posso aiutarti a trovare informazioni nelle linee guida.",
                 composerPlaceholder: "Scrivi un messaggio…",
-                useSessionStorage: true
+                useSessionStorage: true,
+                // opzionale: alza lo z-index per stare sopra alla UI
+                style: {{
+                  zIndex: 9999
+                }}
+              }}
+            }}).then(() => {{
+              if (first && window.botpress && window.botpress.open) {{
+                window.botpress.open();
+                sessionStorage.setItem("bp_opened_once", "1");
               }}
             }});
-            console.log("Botpress init OK (embedded).");
           }} catch (e) {{
             console.error("Botpress init error:", e);
           }}
         }});
       </script>
-    """, height=620)
+    """, height=0, width=0)
 else:
     st.warning("⚠️ Bot non configurato: aggiungi `botId` e `clientId` nei **segreti** (`.streamlit/secrets.toml`).")
-
